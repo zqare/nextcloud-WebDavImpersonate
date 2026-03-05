@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>webdavimpersonate</id>
+	<name>Web Dav Impersonate</name>
+	<summary>Enables authenticated users to impersonate others via WebDAV header.</summary>
+	<description><![CDATA[**Secure user impersonation via WebDAV `X-Impersonate-User` header**
+
+## 🎯 Features
+- **Group-based permissions**: Separate "Impersonator Groups" (may impersonate) and "Imitatee Groups" (may be impersonated)  
+- **Username validation**: Only users in allowed groups can impersonate/be impersonated
+- **Audit logging**: All attempts logged (Caller → Target → Method)
+- **Admin UI**: Simple group & log level configuration
+- **Fail-secure**: Empty group lists → **100% blocked**
+
+## 💼 Use Cases
+- **Service Accounts** → Automate end-user file operations  
+- **Support Teams** → Manage customer files without password sharing
+- **Backup Tools** → File access as target user (no app passwords)
+
+## 🔐 Security
+- **Real-time validation**: Group membership checked **every request**
+- **Transparent logs**: Complete audit trail for every attempt  
+- **Zero credential sharing**: Uses existing Basic Auth credentials
+
+## 🚀 3-Step Setup]]></description>
+	<version>1.0.0</version>
+	<licence>AGPL-3.0-or-later</licence>
+	<author mail="zqare@live.de" homepage="https://github.com/zqare/nextcloud-WebDavImpersonate">Steffen Preuss</author>
+	<namespace>WebDavImpersonate</namespace>
+	<category>files</category>
+	<category>security</category>
+	<bugs>https://github.com/zqare/nextcloud-WebDavImpersonate/issues</bugs>
+	<dependencies>
+		<nextcloud min-version="31" max-version="32"/>
+	</dependencies>
+	<navigations>
+		<navigation>
+			<id>webdavimpersonate</id>
+			<name>Web Dav Impersonate</name>
+			<route>webdavimpersonate.page.index</route>
+			<icon>app.svg</icon>
+			<type>link</type>
+		</navigation>
+	</navigations>
+</info>

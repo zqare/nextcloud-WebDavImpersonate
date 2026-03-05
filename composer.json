@@ -1,0 +1,69 @@
+{
+	"name": "nextcloud/webdavimpersonate",
+	"description": "<![CDATA[**Secure user impersonation via WebDAV `X-Impersonate-User` header**
+
+## 🎯 Features
+- **Group-based permissions**: Separate "Impersonator Groups" (may impersonate) and "Imitatee Groups" (may be impersonated)  
+- **Username validation**: Only users in allowed groups can impersonate/be impersonated
+- **Audit logging**: All attempts logged (Caller → Target → Method)
+- **Admin UI**: Simple group & log level configuration
+- **Fail-secure**: Empty group lists → **100% blocked**
+
+## 💼 Use Cases
+- **Service Accounts** → Automate end-user file operations  
+- **Support Teams** → Manage customer files without password sharing
+- **Backup Tools** → File access as target user (no app passwords)
+
+## 🔐 Security
+- **Real-time validation**: Group membership checked **every request**
+- **Transparent logs**: Complete audit trail for every attempt  
+- **Zero credential sharing**: Uses existing Basic Auth credentials
+
+## 🚀 3-Step Setup]]>",
+	"license": "AGPL-3.0-or-later",
+	"authors": [
+		{
+			"name": "Steffen Preuss",
+			"email": "zqare@live.de",
+			"homepage": "https://github.com/zqare/nextcloud-WebDavImpersonate"
+		}
+	],
+	"autoload": {
+		"psr-4": {
+			"OCA\\WebDavImpersonate\\": "lib/"
+		}
+	},
+	"scripts": {
+		"post-install-cmd": [
+			"@composer bin all install --ansi"
+		],
+		"post-update-cmd": [
+			"@composer bin all install --ansi"
+		],
+		"lint": "find . -name \\*.php -not -path './vendor/*' -not -path './vendor-bin/*' -not -path './build/*' -print0 | xargs -0 -n1 php -l",
+		"cs:check": "php-cs-fixer fix --dry-run --diff",
+		"cs:fix": "php-cs-fixer fix",
+		"psalm": "psalm --threads=1 --no-cache",
+		"test:unit": "phpunit tests -c tests/phpunit.xml --colors=always --fail-on-warning --fail-on-risky",
+		"openapi": "generate-spec",
+		"rector": "rector && composer cs:fix"
+	},
+	"require": {
+		"bamarni/composer-bin-plugin": "^1.8",
+		"php": "^8.1"
+	},
+	"require-dev": {
+		"nextcloud/ocp": "dev-stable31",
+		"roave/security-advisories": "dev-latest"
+	},
+	"config": {
+		"allow-plugins": {
+			"bamarni/composer-bin-plugin": true
+		},
+		"optimize-autoloader": true,
+		"sort-packages": true,
+		"platform": {
+			"php": "8.1"
+		}
+	}
+}
