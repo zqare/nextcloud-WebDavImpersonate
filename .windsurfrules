@@ -1,0 +1,46 @@
+
+# WebDAV Impersonate – Windsurf Rules
+
+## Project Context
+- Nextcloud App (PHP 8.1+, Nextcloud 28+)
+- App ID: webdav_impersonate
+- Namespace: OCA\WebDavImpersonate
+- License: AGPL-3.0-or-later (ALL files must have AGPL header)
+
+## Code Standards
+- PSR-12 coding style, strict_types=1 in every PHP file
+- Only use OCP\* interfaces, never OC\* internal classes
+- Dependency injection via constructor, never static calls
+- PHPUnit 10 for all tests, mock all dependencies
+- Comprehensive inline documentation for all methods and classes
+- Use PHPDoc blocks with @param, @return, @throws annotations
+- Document all public methods with purpose, parameters, and examples
+
+## File Conventions
+- Keep docs/developer.md and docs/setup.md always up to date
+- Maintain a TODO.md with [TODO] [IN PROGRESS] [DONE] status
+- Every new class needs a corresponding unit test
+
+## Architecture Rules
+- DAV Plugin registers via SabrePluginAddEvent (NOT hooks)
+- Admin settings use OCP\Settings\ISettings interface
+- Config stored via IConfig::setAppValue/getAppValue
+- Logging only through LoggerInterface, never error_log()
+
+## Feature Requirements
+- WebDAV user impersonation via header parameter
+- Admin configuration UI for allowed groups
+- Group selection with autocomplete
+- Configurable log levels in admin settings
+- Comprehensive logging of impersonation actions
+- Nextcloud App Store compliance
+
+## Development Workflow
+- Create unit tests for all new classes
+- Update documentation during development
+- Ensure AGPL license headers on all files
+- Follow Nextcloud App Store guidelines
+- Implement proper error handling and logging
+
+## References
+- Check /.documentation-master/ folder for developer api ref

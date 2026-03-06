@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../../../tests/bootstrap.php';
-require_once __DIR__ . '/../vendor/autoload.php';
+/**
+ * @copyright Copyright (c) 2026 Steffen Preuss <zqare@live.de>
+ *
+ * This file is licensed under the Affero General Public License version 3 or
+ * later. See the COPYING file.
+ */
 
-\OC_App::loadApp(OCA\WebDavImpersonate\AppInfo\Application::APP_ID);
-OC_Hook::clear();
+// Include our app's autoloader for test classes
+require_once __DIR__ . '/../vendor/autoload.php';

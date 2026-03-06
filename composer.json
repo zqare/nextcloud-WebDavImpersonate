@@ -1,25 +1,6 @@
 {
 	"name": "nextcloud/webdavimpersonate",
-	"description": "<![CDATA[**Secure user impersonation via WebDAV `X-Impersonate-User` header**
-
-## 🎯 Features
-- **Group-based permissions**: Separate "Impersonator Groups" (may impersonate) and "Imitatee Groups" (may be impersonated)  
-- **Username validation**: Only users in allowed groups can impersonate/be impersonated
-- **Audit logging**: All attempts logged (Caller → Target → Method)
-- **Admin UI**: Simple group & log level configuration
-- **Fail-secure**: Empty group lists → **100% blocked**
-
-## 💼 Use Cases
-- **Service Accounts** → Automate end-user file operations  
-- **Support Teams** → Manage customer files without password sharing
-- **Backup Tools** → File access as target user (no app passwords)
-
-## 🔐 Security
-- **Real-time validation**: Group membership checked **every request**
-- **Transparent logs**: Complete audit trail for every attempt  
-- **Zero credential sharing**: Uses existing Basic Auth credentials
-
-## 🚀 3-Step Setup]]>",
+	"description": "Secure user impersonation via WebDAV X-Impersonate-User header",
 	"license": "AGPL-3.0-or-later",
 	"authors": [
 		{
@@ -31,6 +12,11 @@
 	"autoload": {
 		"psr-4": {
 			"OCA\\WebDavImpersonate\\": "lib/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"OCA\\WebDavImpersonate\\Tests\\": "tests/"
 		}
 	},
 	"scripts": {
@@ -54,6 +40,7 @@
 	},
 	"require-dev": {
 		"nextcloud/ocp": "dev-stable31",
+		"phpunit/phpunit": "^10",
 		"roave/security-advisories": "dev-latest"
 	},
 	"config": {

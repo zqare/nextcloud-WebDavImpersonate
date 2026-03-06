@@ -1,12 +1,60 @@
+# IDE Files
 /.idea/
 /*.iml
+.vscode/
+*.swp
+*.swo
+*~
 
+# Composer Dependencies
 /vendor/
 /vendor-bin/*/vendor/
+composer.lock
 
+# Build Tools
 /.php-cs-fixer.cache
 /tests/.phpunit.cache
+/.phpunit.result.cache
+psalm.xml
+psalm-baseline.xml
 
+# Node.js Dependencies & Build
 /node_modules/
 /js/
 /css/
+/dist/
+/build/
+*.tsbuildinfo
+
+# Nextcloud Specific
+/.documentation-master/
+/l10n/
+*.pot
+
+# Logs
+*.log
+/logs/
+/data/nextcloud.log*
+
+# Temporary Files
+/tmp/
+/temp/
+*.tmp
+*.temp
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Test Coverage
+/coverage/
+*.cov
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Backup Files
+*.bak
+*.backup
