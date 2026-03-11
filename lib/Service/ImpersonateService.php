@@ -102,24 +102,22 @@ class ImpersonateService {
 	 * Example usage:
 	 * ```
 	 * // In ImpersonatePlugin::beforeMethod()
-	 * $this->impersonateService->impersonate('Steffen', 'PUT');
+	 * $this->impersonateService->impersonate('admin', 'Steffen', 'PUT');
 	 * ```
 	 * 
+	 * @param string $callerUserId The UID of the user attempting to impersonate (from Sabre auth)
 	 * @param string $targetUserId The UID of the user to impersonate
 	 * @param string $method The HTTP method being used (GET, PUT, PROPPATCH, etc.)
 	 * @return void
 	 * @throws NotAuthenticated When no authenticated user is found
 	 * @throws Forbidden When impersonation is not allowed or user not found
 	 */
-	public function impersonate(string $targetUserId, string $method): void {
-		// Get the currently authenticated user
-		$currentUser = $this->userSession->getUser();
-		if (!$currentUser instanceof IUser) {
+	public function impersonate(string $callerUserId, string $targetUserId, string $method): void {
+		// Validate that we have a caller user from Sabre auth
+		if (empty($callerUserId)) {
 			$this->logImpersonationAttempt('', $targetUserId, $method, 'denied - no authenticated user');
 			throw new NotAuthenticated('No authenticated user found for impersonation');
 		}
-
-		$callerUserId = $currentUser->getUID();
 
 		// Validate that the caller is allowed to impersonate
 		if (!$this->isUserInImpersonatorGroups($callerUserId)) {
@@ -141,8 +139,17 @@ class ImpersonateService {
 		}
 
 		// Perform the impersonation by switching the user context
-		$this->userSession->setUser($targetUser);
-		$this->logImpersonationAttempt($callerUserId, $targetUserId, $method, 'success');
+        // Note: We use volatile user switching for WebDAV to avoid CSRF issues
+        // This sets the user only for the current request lifetime without modifying the session
+        $this->userSession->setImpersonatingUserID(true);
+        $this->userSession->setVolatileActiveUser($targetUser);
+       
+        $this->logger->error('User context switched from {original} to {target}', [
+            'original' => $callerUserId,
+            'target' => $targetUserId
+        ]);
+       
+        $this->logImpersonationAttempt($callerUserId, $targetUserId, $method, 'success');
 	}
 
 	/**
@@ -153,7 +160,8 @@ class ImpersonateService {
 	public function getImpersonatorGroups(): array {
 		$groupsJson = $this->config->getAppValue(self::APP_ID, self::CONFIG_KEY_IMPERSONATOR_GROUPS, '[]');
 		$groups = json_decode($groupsJson, true);
-		
+
+
 		if (!is_array($groups)) {
 			return [];
 		}

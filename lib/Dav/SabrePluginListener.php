@@ -50,13 +50,12 @@ class SabrePluginListener implements IEventListener {
 		$this->impersonateService = $impersonateService;
 		$this->logger = $logger;
 	}
-
 	/**
 	 * Handle the SabrePluginAddEvent to register our impersonation plugin.
 	 * 
 	 * This method is called automatically by Nextcloud's event system
-	 * when a SabreDAV server is being initialized. It creates an instance
-	 * of ImpersonatePlugin and registers it with the server.
+	 * for every WebDAV request when a SabreDAV server is being initialized. 
+	 * It creates an instance of ImpersonatePlugin and registers it with the server.
 	 * 
 	 * The event is only processed if it's actually a SabrePluginAddEvent,
 	 * ensuring compatibility with other events in the system.

@@ -64,7 +64,8 @@ class ImpersonatePlugin extends ServerPlugin {
 	public function initialize(Server $server): void {
 		$this->server = $server;
 		// Register for all HTTP methods (GET, PUT, PROPPATCH, DELETE, etc.)
-		$this->server->on('beforeMethod:*', [$this, 'beforeMethod'], 10);
+		// Priority 30 ensures we run after auth (10) and ACL (20) plugins
+		$this->server->on('beforeMethod:*', [$this, 'beforeMethod'], 30);
 	}
 
 	/**
@@ -99,24 +100,38 @@ class ImpersonatePlugin extends ServerPlugin {
 		
 		// Validate impersonation header format
 		if (empty(trim($impersonateUser))) {
-			$this->logger->error('Invalid impersonation header format: empty value');
-			$response->setStatus(511);
-			$response->setHeader('Content-Type', 'application/json');
-			$response->setBody(json_encode(['error' => 'Invalid impersonation header format']));
 			return;
 		}
        
 		// Extract HTTP method for logging and validation
 		$method = $request->getMethod();
 		
+		// Get the currently authenticated user from Sabre auth plugin
+		// This works for Basic Auth without requiring a PHP session
+		$authPlugin = $this->server->getPlugin('auth');
+		if ($authPlugin === null) {
+			$this->logger->error('WebDAV impersonation failed: no auth plugin found');
+			return;
+		}
+		
+		$currentPrincipal = $authPlugin->getCurrentPrincipal();
+		if ($currentPrincipal === null) {
+			$this->logger->error('WebDAV impersonation failed: no authenticated principal found');
+			return;
+		}
+		
+		// Principal format is "principals/users/USERNAME" - extract the username
+		$callerUserId = basename($currentPrincipal);
+		
 		// Log impersonation attempt
-		$this->logger->error('WebDAV impersonation attempt: {method} for user {user}', [
+		$this->logger->error('WebDAV impersonation attempt: {method} for user {user} by {caller}', [
 			'method' => $method,
-			'user' => $impersonateUser
+			'user' => $impersonateUser,
+			'caller' => $callerUserId
 		]);
 		
 		// Delegate impersonation logic to the service
-		$this->impersonateService->impersonate($impersonateUser, $method);
+		$this->impersonateService->impersonate($callerUserId, $impersonateUser, $method);
 	}
 
 	/**
