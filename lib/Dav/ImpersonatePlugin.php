@@ -56,7 +56,18 @@ class ImpersonatePlugin extends ServerPlugin {
 	 * Initialize the plugin with the SabreDAV server.
 	 * 
 	 * This method is called by SabreDAV when the plugin is registered.
-	 * It sets up the event listener for all HTTP methods.
+	 * It sets up the event listener for all HTTP methods with priority 30
+	 * to ensure proper execution order:
+	 * 
+	 * Execution Order:
+	 * 1. Auth Plugin (Priority 10) - Handles Basic/Digest authentication
+	 * 2. ACL Plugin (Priority 20) - Handles access control and permissions
+	 * 3. Impersonate Plugin (Priority 30) - Handles user impersonation
+	 * 
+	 * The priority 30 is critical because:
+	 * - Ensures authentication is complete before impersonation logic runs
+	 * - Guarantees $authPlugin->getCurrentPrincipal() returns valid principal
+	 * - Allows impersonation to work with Basic Auth without PHP sessions
 	 * 
 	 * @param Server $server The SabreDAV server instance
 	 * @return void
@@ -74,6 +85,18 @@ class ImpersonatePlugin extends ServerPlugin {
 	 * It checks for the X-Impersonate-User header and performs impersonation
 	 * if the header is present. The impersonation is handled by the ImpersonateService
 	 * which validates permissions and switches the user context.
+	 * 
+	 * Authentication Flow:
+	 * 1. Client sends Basic Auth credentials + X-Impersonate-User header
+	 * 2. Auth Plugin (Priority 10) validates Basic Auth and sets principal
+	 * 3. ACL Plugin (Priority 20) handles access control
+	 * 4. This Plugin (Priority 30) extracts authenticated user and performs impersonation
+	 * 
+	 * Key Design Decisions:
+	 * - Uses Sabre auth plugin instead of IUserSession to support Basic Auth without sessions
+	 * - Extracts username from principal path "principals/users/USERNAME" using basename()
+	 * - Passes caller ID to service for validation and impersonation logic
+	 * - Uses volatile user switching to avoid CSRF token issues
 	 * 
 	 * Example usage:
 	 * ```
@@ -108,19 +131,23 @@ class ImpersonatePlugin extends ServerPlugin {
 		
 		// Get the currently authenticated user from Sabre auth plugin
 		// This works for Basic Auth without requiring a PHP session
+		// Critical: This runs at priority 30, AFTER auth plugin (priority 10) completes
 		$authPlugin = $this->server->getPlugin('auth');
 		if ($authPlugin === null) {
 			$this->logger->error('WebDAV impersonation failed: no auth plugin found');
 			return;
 		}
 		
+		// getCurrentPrincipal() returns the authenticated user's principal path
+		// Format: "principals/users/USERNAME" or null if not authenticated
 		$currentPrincipal = $authPlugin->getCurrentPrincipal();
 		if ($currentPrincipal === null) {
 			$this->logger->error('WebDAV impersonation failed: no authenticated principal found');
 			return;
 		}
 		
-		// Principal format is "principals/users/USERNAME" - extract the username
+		// Extract username from principal path
+		// Example: "principals/users/admin" → "admin"
 		$callerUserId = basename($currentPrincipal);
 		
 		// Log impersonation attempt

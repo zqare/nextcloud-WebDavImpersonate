@@ -27,11 +27,23 @@ use Sabre\DAV\Exception\NotAuthenticated;
  * This service contains the core business logic for user impersonation:
  * - Validates that the current user is allowed to impersonate others
  * - Validates that the target user exists and can be impersonated
- * - Performs the actual user context switch
+ * - Performs the actual user context switch using volatile switching
  * - Logs all impersonation attempts with configurable levels
  * 
- * The service follows a fail-secure approach: if no impersonator groups
- * are configured, impersonation is completely disabled.
+ * Authentication Architecture:
+ * - Uses Sabre auth plugin principal instead of IUserSession for Basic Auth support
+ * - Caller ID is extracted from "principals/users/USERNAME" path in plugin
+ * - This enables impersonation without requiring PHP sessions
+ * 
+ * CSRF Handling:
+ * - Uses setVolatileActiveUser() instead of setUser() to avoid session modification
+ * - setImpersonatingUserID() marks the request as impersonation context
+ * - Prevents "CSRF check not passed" errors in WebDAV requests
+ * 
+ * Security Model:
+ * - Fail-secure approach: no groups configured = impersonation disabled
+ * - Group-based permissions for both impersonators and imitatees
+ * - Comprehensive logging of all impersonation attempts
  * 
  * @package OCA\WebDavImpersonate\Service
  */
@@ -93,11 +105,23 @@ class ImpersonateService {
 	 * This method validates that the current user is allowed to impersonate
 	 * the target user and performs the user context switch if validation passes.
 	 * 
-	 * The validation process includes:
-	 * 1. Check that there's an authenticated user
-	 * 2. Verify the current user is in allowed impersonator groups
-	 * 3. Verify the target user exists and is in allowed imitatee groups
-	 * 4. Switch the user context for the current request
+	 * Authentication Flow:
+	 * - Caller ID comes from Sabre auth plugin (not IUserSession) for Basic Auth support
+	 * - This enables impersonation without PHP sessions or cookies
+	 * - The plugin extracts the caller ID from "principals/users/USERNAME" principal
+	 * 
+	 * CSRF Prevention Strategy:
+	 * - Uses setVolatileActiveUser() instead of setUser() to avoid session modification
+	 * - setImpersonatingUserID() marks the request context as impersonation
+	 * - Volatile switching only affects the current request lifetime
+	 * - Prevents "CSRF check not passed" errors that occur with session changes
+	 * 
+	 * Security Validation:
+	 * 1. Verify caller user exists and is authenticated
+	 * 2. Check caller is in allowed impersonator groups
+	 * 3. Verify target user exists in the system
+	 * 4. Validate target is in allowed imitatee groups
+	 * 5. Perform volatile user context switch
 	 * 
 	 * Example usage:
 	 * ```
@@ -139,8 +163,13 @@ class ImpersonateService {
 		}
 
 		// Perform the impersonation by switching the user context
-        // Note: We use volatile user switching for WebDAV to avoid CSRF issues
-        // This sets the user only for the current request lifetime without modifying the session
+        // CRITICAL: Use volatile switching to prevent CSRF issues
+        // 
+        // Why volatile switching?
+        // - setUser() modifies the session and breaks CSRF validation
+        // - setVolatileActiveUser() only affects current request lifetime
+        // - WebDAV requests don't need persistent session changes
+        // - Prevents "CSRF check not passed" errors
         $this->userSession->setImpersonatingUserID(true);
         $this->userSession->setVolatileActiveUser($targetUser);
        
