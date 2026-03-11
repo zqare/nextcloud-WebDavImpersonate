@@ -8,6 +8,7 @@ use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
+use OCA\WebDavImpersonate\Dav\SabrePluginListener;
 
 class Application extends App implements IBootstrap {
 	public const APP_ID = 'webdavimpersonate';
@@ -18,6 +19,11 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function register(IRegistrationContext $context): void {
+		// Register the SabrePluginListener for the SabrePluginAddEvent
+		$context->registerEventListener(
+			'OCA\\DAV\\Events\\SabrePluginAddEvent',
+			SabrePluginListener::class
+		);
 	}
 
 	public function boot(IBootContext $context): void {

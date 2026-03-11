@@ -17,6 +17,7 @@ use OCP\EventDispatcher\IEventListener;
 use OCA\DAV\Events\SabrePluginAddEvent;
 use Sabre\DAV\Server;
 use Sabre\DAV\ServerPlugin;
+use Psr\Log\LoggerInterface;
 
 /**
  * Event listener for registering the ImpersonatePlugin with SabreDAV.
@@ -35,14 +36,19 @@ class SabrePluginListener implements IEventListener {
 	
 	/** @var ImpersonateService Service for handling impersonation logic */
 	private ImpersonateService $impersonateService;
+	
+	/** @var LoggerInterface Logger for error and debug logging */
+	private LoggerInterface $logger;
 
 	/**
 	 * Constructor for SabrePluginListener.
 	 * 
 	 * @param ImpersonateService $impersonateService Service for handling impersonation logic
+	 * @param LoggerInterface $logger Logger for error and debug logging
 	 */
-	public function __construct(ImpersonateService $impersonateService) {
+	public function __construct(ImpersonateService $impersonateService, LoggerInterface $logger) {
 		$this->impersonateService = $impersonateService;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -60,6 +66,7 @@ class SabrePluginListener implements IEventListener {
 	 * @throws \InvalidArgumentException When the event is not a SabrePluginAddEvent
 	 */
 	public function handle(Event $event): void {
+
 		// Ensure we're handling the correct event type
 		if (!$event instanceof SabrePluginAddEvent) {
 			return;
@@ -72,7 +79,8 @@ class SabrePluginListener implements IEventListener {
 		}
 
 		// Create and register our impersonation plugin
-		$plugin = new ImpersonatePlugin($this->impersonateService);
+		$plugin = new ImpersonatePlugin($this->impersonateService, $this->logger);
 		$server->addPlugin($plugin);
+
 	}
 }

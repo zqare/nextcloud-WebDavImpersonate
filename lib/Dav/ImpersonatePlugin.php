@@ -35,6 +35,9 @@ class ImpersonatePlugin extends ServerPlugin {
 	/** @var ImpersonateService Service handling impersonation logic */
 	private ImpersonateService $impersonateService;
 	
+	/** @var LoggerInterface Logger for error and debug logging */
+	private LoggerInterface $logger;
+	
 	/** @var string HTTP header name for impersonation */
 	public const HEADER_NAME = 'X-Impersonate-User';
 
@@ -42,9 +45,11 @@ class ImpersonatePlugin extends ServerPlugin {
 	 * Constructor for ImpersonatePlugin.
 	 * 
 	 * @param ImpersonateService $impersonateService Service for handling impersonation logic
+	 * @param LoggerInterface $logger Logger for error and debug logging
 	 */
-	public function __construct(ImpersonateService $impersonateService) {
+	public function __construct(ImpersonateService $impersonateService, LoggerInterface $logger) {
 		$this->impersonateService = $impersonateService;
+		$this->logger = $logger;
 	}
 
 	/**
@@ -87,13 +92,28 @@ class ImpersonatePlugin extends ServerPlugin {
 	public function beforeMethod(RequestInterface $request, ResponseInterface $response): void {
 		$impersonateUser = $request->getHeader(self::HEADER_NAME);
 		
-		// No impersonation header found - proceed with normal request
-		if ($impersonateUser === null) {
+     	// No impersonation header found - proceed with normal request
+		if ($impersonateUser === null || $impersonateUser === '') {
 			return;
 		}
 		
+		// Validate impersonation header format
+		if (empty(trim($impersonateUser))) {
+			$this->logger->error('Invalid impersonation header format: empty value');
+			$response->setStatus(511);
+			$response->setHeader('Content-Type', 'application/json');
+			$response->setBody(json_encode(['error' => 'Invalid impersonation header format']));
+			return;
+		}
+       
 		// Extract HTTP method for logging and validation
 		$method = $request->getMethod();
+		
+		// Log impersonation attempt
+		$this->logger->error('WebDAV impersonation attempt: {method} for user {user}', [
+			'method' => $method,
+			'user' => $impersonateUser
+		]);
 		
 		// Delegate impersonation logic to the service
 		$this->impersonateService->impersonate($impersonateUser, $method);
