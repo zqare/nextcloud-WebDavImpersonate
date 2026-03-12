@@ -1,25 +1,53 @@
-# Web Dav Impersonate
+# WebDAV Impersonate
 
-A template to get started with Nextcloud app development.
+Secure user impersonation for Nextcloud WebDAV operations via HTTP header.
 
-## Usage
+## Features
 
-- To get started easily use the [Appstore App generator](https://apps.nextcloud.com/developer/apps/generate) to
-  dynamically generate an App based on this repository with all the constants prefilled.
-- Alternatively you can use the "Use this template" button on the top of this page to create a new repository based on
-  this repository. Afterwards adjust all the necessary constants like App ID, namespace, descriptions etc.
+- **Group-based permissions**: Separate "Impersonator Groups" (may impersonate) and "Imitatee Groups" (may be impersonated)
+- **Username validation**: Only users in allowed groups can impersonate/be impersonated
+- **Audit logging**: All attempts logged (Caller → Target → Method)
+- **Admin UI**: Simple group & log level configuration
+- **Fail-secure**: Empty group lists → **100% blocked**
 
-Once your app is ready follow the [instructions](https://nextcloudappstore.readthedocs.io/en/latest/developer.html) to
-upload it to the Appstore.
+## Use Cases
 
-## Resources
+- **Service Accounts** → Automate end-user file operations
+- **Support Teams** → Manage customer files without password sharing
+- **Backup Tools** → File access as target user (no app passwords)
 
-### Documentation for developers:
+## Security
 
-- General documentation and tutorials: https://nextcloud.com/developer
-- Technical documentation: https://docs.nextcloud.com/server/latest/developer_manual
+- **Real-time validation**: Group membership checked **every request**
+- **Transparent logs**: Complete audit trail for every attempt
+- **Zero credential sharing**: Uses existing Basic Auth credentials
 
-### Help for developers:
+## Quick Start
 
-- Official community chat: https://cloud.nextcloud.com/call/xs25tz5y
-- Official community forum: https://help.nextcloud.com/c/dev/11
+1. Install the app from Nextcloud App Store or manually
+2. Configure impersonator and imitatee groups in admin settings
+3. Use WebDAV with `X-Impersonate-User` header:
+
+```bash
+curl -u service_user:password \
+     -H "X-Impersonate-User: target_user" \
+     -X PUT \
+     -T file.txt \
+     https://nextcloud.local/remote.php/dav/files/target_user/file.txt
+```
+
+## Documentation
+
+- [Developer Documentation](docs/developer.md)
+- [Setup Guide](docs/setup.md)
+- [Security Analysis](docs/security.md)
+- [API Reference](docs/api-reference.md)
+
+## License
+
+AGPL-3.0-or-later - see [LICENSE](LICENSE) file for details.
+
+## Support
+
+- [GitHub Issues](https://github.com/zqare/nextcloud-WebDavImpersonate/issues)
+- [Nextcloud Forums](https://help.nextcloud.com/)
