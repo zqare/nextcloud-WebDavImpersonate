@@ -1,0 +1,884 @@
+{
+	"info": {
+		"_postman_id": "nextcloud-webdav-impersonate-standalone",
+		"name": "Nextcloud WebDAV Impersonate - Standalone",
+		"description": "Complete standalone Postman collection for testing Nextcloud WebDAV with and without impersonation. All configuration is built-in - no environment files needed.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Standard WebDAV Tests (No Impersonation)",
+			"item": [
+				{
+					"name": "PROPFIND - Get Root Directory",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 207 Multi-Status\", function () {",
+									"    pm.response.to.have.status(207);",
+									"});",
+									"",
+									"pm.test(\"Response contains WebDAV properties\", function () {",
+									"    const responseText = pm.response.text();",
+									"    pm.expect(responseText).to.include(\"d:propstat\");",
+									"    pm.expect(responseText).to.include(\"d:prop\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PROPFIND",
+						"header": [
+							{
+								"key": "Depth",
+								"value": "1"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/xml"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:propfind xmlns:d=\"DAV:\">\n  <d:prop>\n    <d:displayname/>\n    <d:resourcetype/>\n    <d:getcontentlength/>\n    <d:getlastmodified/>\n  </d:prop>\n</d:propfind>"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "MKCOL - Create Test Directory",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "MKCOL",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/test-directory",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", "test-directory"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PUT - Upload Test File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "text/plain"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "This is a test file uploaded via Postman WebDAV.\nCreated at: {{timestamp}}\nTest content for Nextcloud WebDAV functionality."
+						},
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/test-directory/test-file.txt",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", "test-directory", "test-file.txt"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Download Test File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains uploaded test content\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"This is a test file uploaded via Postman WebDAV\");",
+									"    pm.expect(pm.response.text()).to.include(\"Created at:\");",
+									"    pm.expect(pm.response.text()).to.include(\"Test content for Nextcloud WebDAV functionality\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/test-directory/test-file.txt",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", "test-directory", "test-file.txt"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE - Cleanup Test File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/test-directory/test-file.txt",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", "test-directory", "test-file.txt"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE - Cleanup Test Directory",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/test-directory",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", "test-directory"]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Basic WebDAV operations without impersonation"
+		},
+		{
+			"name": "Impersonation WebDAV Tests",
+			"item": [
+				{
+					"name": "PROPFIND - Get Impersonated Root Directory",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 207 Multi-Status\", function () {",
+									"    pm.response.to.have.status(207);",
+									"});",
+									"",
+									"pm.test(\"Impersonation header was sent\", function () {",
+									"    const request = pm.request;",
+									"    const impersonateHeader = request.headers.find(h => h.key.toLowerCase() === 'x-impersonate-user');",
+									"    pm.expect(impersonateHeader).to.exist;",
+									"    pm.expect(impersonateHeader.value).to.eql(pm.collectionVariables.get('impersonatedUser'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PROPFIND",
+						"header": [
+							{
+								"key": "Depth",
+								"value": "1"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/xml"
+							},
+							{
+								"key": "X-Impersonate-User",
+								"value": "{{impersonatedUser}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:propfind xmlns:d=\"DAV:\">\n  <d:prop>\n    <d:displayname/>\n    <d:resourcetype/>\n    <d:getcontentlength/>\n    <d:getlastmodified/>\n  </d:prop>\n</d:propfind>"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{impersonatedUser}}/",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{impersonatedUser}}", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "MKCOL - Create Impersonated Test Directory",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Impersonation header was sent\", function () {",
+									"    const request = pm.request;",
+									"    const impersonateHeader = request.headers.find(h => h.key.toLowerCase() === 'x-impersonate-user');",
+									"    pm.expect(impersonateHeader).to.exist;",
+									"    pm.expect(impersonateHeader.value).to.eql(pm.collectionVariables.get('impersonatedUser'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "MKCOL",
+						"header": [
+							{
+								"key": "X-Impersonate-User",
+								"value": "{{impersonatedUser}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{impersonatedUser}}/impersonated-test-directory",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{impersonatedUser}}", "impersonated-test-directory"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "PUT - Upload Impersonated Test File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Impersonation header was sent\", function () {",
+									"    const request = pm.request;",
+									"    const impersonateHeader = request.headers.find(h => h.key.toLowerCase() === 'x-impersonate-user');",
+									"    pm.expect(impersonateHeader).to.exist;",
+									"    pm.expect(impersonateHeader.value).to.eql(pm.collectionVariables.get('impersonatedUser'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "text/plain"
+							},
+							{
+								"key": "X-Impersonate-User",
+								"value": "{{impersonatedUser}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "This is a test file uploaded via Postman WebDAV with IMPERSONATION.\nCreated at: {{timestamp}}\nTest content for Nextcloud WebDAV impersonation functionality.\nUploaded by admin but should appear as owned by {{impersonatedUser}}."
+						},
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{impersonatedUser}}/impersonated-test-directory/impersonated-test-file.txt",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{impersonatedUser}}", "impersonated-test-directory", "impersonated-test-file.txt"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "GET - Download Impersonated Test File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 OK\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response contains impersonated test content\", function () {",
+									"    pm.expect(pm.response.text()).to.include(\"IMPERSONATION\");",
+									"});",
+									"",
+									"pm.test(\"Impersonation header was sent\", function () {",
+									"    const request = pm.request;",
+									"    const impersonateHeader = request.headers.find(h => h.key.toLowerCase() === 'x-impersonate-user');",
+									"    pm.expect(impersonateHeader).to.exist;",
+									"    pm.expect(impersonateHeader.value).to.eql(pm.collectionVariables.get('impersonatedUser'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "X-Impersonate-User",
+								"value": "{{impersonatedUser}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{impersonatedUser}}/impersonated-test-directory/impersonated-test-file.txt",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{impersonatedUser}}", "impersonated-test-directory", "impersonated-test-file.txt"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE - Cleanup Impersonated Test File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"pm.test(\"Impersonation header was sent\", function () {",
+									"    const request = pm.request;",
+									"    const impersonateHeader = request.headers.find(h => h.key.toLowerCase() === 'x-impersonate-user');",
+									"    pm.expect(impersonateHeader).to.exist;",
+									"    pm.expect(impersonateHeader.value).to.eql(pm.collectionVariables.get('impersonatedUser'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-Impersonate-User",
+								"value": "{{impersonatedUser}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{impersonatedUser}}/impersonated-test-directory/impersonated-test-file.txt",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{impersonatedUser}}", "impersonated-test-directory", "impersonated-test-file.txt"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "DELETE - Cleanup Impersonated Test Directory",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});",
+									"",
+									"pm.test(\"Impersonation header was sent\", function () {",
+									"    const request = pm.request;",
+									"    const impersonateHeader = request.headers.find(h => h.key.toLowerCase() === 'x-impersonate-user');",
+									"    pm.expect(impersonateHeader).to.exist;",
+									"    pm.expect(impersonateHeader.value).to.eql(pm.collectionVariables.get('impersonatedUser'));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-Impersonate-User",
+								"value": "{{impersonatedUser}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{impersonatedUser}}/impersonated-test-directory",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{impersonatedUser}}", "impersonated-test-directory"]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "WebDAV operations with impersonation - admin acts on behalf of another user"
+		},
+		{
+			"name": "File Upload Tests",
+			"item": [
+				{
+					"name": "Upload Small Text File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "text/plain"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "Small test file content uploaded via Postman.\nThis is a simple text file for testing WebDAV upload functionality.\nFile size: approximately 150 bytes.\nCreated: {{timestamp}}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/small-test-file.txt",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", "small-test-file.txt"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Upload JSON File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"test\": \"WebDAV JSON Upload\",\n  \"timestamp\": \"{{timestamp}}\",\n  \"user\": \"{{username}}\",\n  \"description\": \"This is a test JSON file uploaded via WebDAV\",\n  \"metadata\": {\n    \"version\": \"1.0\",\n    \"created\": \"2024-01-01\",\n    \"tags\": [\"test\", \"webdav\", \"json\"]\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/test-data.json",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", "test-data.json"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Larger Text File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201 Created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "text/plain"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "This is a larger test file for WebDAV upload testing.\n\nLorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.\n\nDuis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\nThis file contains multiple lines of text to test the WebDAV upload functionality with larger files. It should still be relatively small (under 1KB) but larger than the simple test file.\n\nTest metadata:\n- Created: {{timestamp}}\n- Uploaded by: {{username}}\n- Purpose: WebDAV upload testing\n- Expected size: ~900 bytes\n\nEnd of larger test file."
+						},
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/larger-test-file.txt",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", "larger-test-file.txt"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cleanup Test Files",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/small-test-file.txt",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", "small-test-file.txt"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cleanup JSON Test File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/test-data.json",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", "test-data.json"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cleanup Large Test File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 204 No Content\", function () {",
+									"    pm.response.to.have.status(204);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/{{username}}/larger-test-file.txt",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "{{username}}", "larger-test-file.txt"]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Various file upload tests with different file types and sizes"
+		},
+		{
+			"name": "Error Handling Tests",
+			"item": [
+				{
+					"name": "Invalid Authentication",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Force clear all cookies and session data",
+									"pm.cookies.clear();",
+									"",
+									"// Override collection auth with fixed invalid credentials",
+									"pm.request.auth = {",
+									"    type: 'basic',",
+									"    basic: {",
+									"        username: 'nonexistent-user',",
+									"        password: 'fake-password-12345'",
+									"    }",
+									"};",
+									"",
+									"// Ensure no headers interfere with auth",
+									"pm.request.headers.remove('Cookie');",
+									"pm.request.headers.remove('Authorization');"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401 Unauthorized\", function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PROPFIND",
+						"header": [
+							{
+								"key": "Depth",
+								"value": "1"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/xml"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:propfind xmlns:d=\"DAV:\">\n  <d:prop>\n    <d:displayname/>\n  </d:prop>\n</d:propfind>"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/nonexistent-user/",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "nonexistent-user", ""]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Impersonate Non-existent User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code should indicate error (401/403/404)\", function () {",
+									"    pm.expect([401, 403, 404]).to.include(pm.response.code);",
+									"});",
+									"",
+									"pm.test(\"Impersonation header was sent\", function () {",
+									"    const request = pm.request;",
+									"    const impersonateHeader = request.headers.find(h => h.key.toLowerCase() === 'x-impersonate-user');",
+									"    pm.expect(impersonateHeader).to.exist;",
+									"    pm.expect(impersonateHeader.value).to.eql('non-existent-user');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PROPFIND",
+						"header": [
+							{
+								"key": "Depth",
+								"value": "1"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/xml"
+							},
+							{
+								"key": "X-Impersonate-User",
+								"value": "non-existent-user"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<d:propfind xmlns:d=\"DAV:\">\n  <d:prop>\n    <d:displayname/>\n  </d:prop>\n</d:propfind>"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/remote.php/dav/files/non-existent-user/",
+							"host": ["{{baseUrl}}"],
+							"path": ["remote.php", "dav", "files", "non-existent-user", ""]
+						}
+					},
+					"response": []
+				}
+			],
+			"description": "Test error conditions and proper error handling"
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string",
+			"description": "Base URL of your Nextcloud instance"
+		},
+		{
+			"key": "username",
+			"value": "admin",
+			"type": "string",
+			"description": "Admin username for authentication"
+		},
+		{
+			"key": "password",
+			"value": "admin",
+			"type": "string",
+			"description": "Admin password for authentication"
+		},
+		{
+			"key": "impersonatedUser",
+			"value": "john",
+			"type": "string",
+			"description": "User to impersonate (must exist in Nextcloud)"
+		}
+	],
+	"auth": {
+		"type": "basic",
+		"basic": [
+			{
+				"key": "username",
+				"value": "{{username}}",
+				"type": "string"
+			},
+			{
+				"key": "password",
+				"value": "{{password}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// AGGRESSIVE COOKIE CLEARING - Ensure no cookies persist",
+					"pm.cookies.clear();",
+					"",
+					"// Clear any session-related headers",
+					"pm.request.headers.remove('Cookie');",
+					"pm.request.headers.remove('Set-Cookie');",
+					"pm.request.headers.remove('Authorization');",
+					"pm.request.headers.remove('X-Session-ID');",
+					"pm.request.headers.remove('X-CSRF-Token');",
+					"",
+					"// Force clear cookies by setting empty values",
+					"const baseUrl = pm.collectionVariables.get('baseUrl');",
+					"if (baseUrl) {",
+					"    try {",
+					"        const url = new URL(baseUrl);",
+					"        const domain = url.hostname;",
+					"        // Clear common session cookie names",
+					"        const sessionCookies = ['nc_session_id', 'oc_session', 'nextcloud_session', 'csrf_token', 'token'];",
+					"        sessionCookies.forEach(cookieName => {",
+					"            pm.cookies.unset(cookieName, domain, '/');",
+					"            pm.cookies.unset(cookieName, domain, '/remote.php');",
+					"            pm.cookies.unset(cookieName, domain, '/remote.php/dav');",
+					"        });",
+					"    } catch (e) {",
+					"        // URL parsing failed, continue with basic clearing",
+					"    }",
+					"}",
+					"",
+					"// Set timestamp for each request",
+					"pm.collectionVariables.set('timestamp', new Date().toISOString());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test - check if response has content-type header",
+					"if (pm.response.headers.get('Content-Type')) {",
+					"    pm.test('Has Content-Type header', function () {",
+					"        pm.expect(pm.response.headers.get('Content-Type')).to.exist;",
+					"    });",
+					"}",
+					"",
+					"// CRITICAL: Ensure no session cookies are ever set",
+					"pm.test('No session cookies in response', function () {",
+					"    const setCookieHeader = pm.response.headers.get('Set-Cookie');",
+					"    const cookieHeader = pm.response.headers.get('Cookie');",
+					"    ",
+					"    if (setCookieHeader) {",
+					"        pm.expect(setCookieHeader.toLowerCase()).to.not.include('session');",
+					"        pm.expect(setCookieHeader.toLowerCase()).to.not.include('csrf');",
+					"        pm.expect(setCookieHeader.toLowerCase()).to.not.include('token');",
+					"    }",
+					"    ",
+					"    if (cookieHeader) {",
+					"        pm.expect(cookieHeader.toLowerCase()).to.not.include('session');",
+					"        pm.expect(cookieHeader.toLowerCase()).to.not.include('csrf');",
+					"        pm.expect(cookieHeader.toLowerCase()).to.not.include('token');",
+					"    }",
+					"});"
+				]
+			}
+		}
+	]
+}

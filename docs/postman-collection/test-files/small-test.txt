@@ -1,0 +1,14 @@
+This is a small test file for WebDAV upload testing.
+
+File Information:
+- Created: 2024-01-01
+- Purpose: Testing WebDAV functionality
+- Size: Small (under 200 bytes)
+- Type: Plain text file
+
+This file can be used to test basic WebDAV PUT operations
+in Nextcloud with and without the impersonation plugin.
+
+Content is simple text to ensure proper encoding handling.
+
+End of file.

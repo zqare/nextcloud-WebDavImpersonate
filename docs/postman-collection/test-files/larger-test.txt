@@ -1,0 +1,39 @@
+This is a larger test file for WebDAV upload testing.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+This file contains multiple lines of text to test the WebDAV upload functionality with larger files. It should still be relatively small (under 2KB) but larger than the simple test file.
+
+Test metadata:
+- Created: 2024-01-01
+- Purpose: WebDAV upload testing
+- Expected size: ~1.5KB
+- Encoding: UTF-8
+- Line endings: Unix (LF)
+
+Additional test content to ensure the file is large enough for meaningful size testing:
+
+Section 1: Basic Content
+This section contains basic text content to verify that WebDAV can handle standard ASCII characters without issues.
+
+Section 2: Special Characters
+Here are some special characters to test encoding: äöüßéàçêñåøł€©®™
+
+Section 3: Numbers and Symbols
+1234567890 !@#$%^&*()_+-=[]{}|;':",./<>?
+
+Section 4: JSON-like content
+{"test": "value", "number": 42, "array": [1, 2, 3]}
+
+Section 5: XML-like content
+<root><child attribute="value">Text content</child></root>
+
+This file should be sufficient for testing various aspects of WebDAV file uploads including:
+- File size handling
+- Character encoding
+- Content preservation
+- MIME type detection
+
+End of larger test file.
