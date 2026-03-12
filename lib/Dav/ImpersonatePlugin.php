@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace OCA\WebDavImpersonate\Dav;
 
 use OCA\WebDavImpersonate\Service\ImpersonateService;
+use OCP\Files\IRootFolder;
 use Psr\Log\LoggerInterface;
 use Sabre\DAV\Server;
 use Sabre\DAV\ServerPlugin;
@@ -24,6 +25,24 @@ use Sabre\HTTP\ResponseInterface;
  * This plugin intercepts all WebDAV requests and checks for the presence
  * of the X-Impersonate-User header. If found, it performs user impersonation
  * through the ImpersonateService.
+ * 
+ * ## Critical Filesystem Reinitialization
+ * 
+ * **PROBLEM IDENTIFIED**: WebDAV requests to `/remote.php/dav/files/john/` failed
+ * because Nextcloud initializes the filesystem for the authenticated user (admin)
+ * but WebDAV paths target the impersonated user. The relative path `/john/files`
+ * could not be resolved because the filesystem root pointed to `/admin/files`.
+ * 
+ * **SOLUTION IMPLEMENTED**: After user switching via `setVolatileActiveUser()`, we must
+ * tear down the existing filesystem mount and reinitialize it for the target user:
+ * 
+ * ```php
+ * // Critical: Reinitialize filesystem for target user
+ * \OC\Files\Filesystem::tearDown();
+ * $this->rootFolder->getUserFolder(trim($impersonateUser));
+ * ```
+ * 
+ * This ensures that WebDAV path resolution works correctly for impersonated users.
  * 
  * @package OCA\WebDavImpersonate\Dav
  */
@@ -38,6 +57,9 @@ class ImpersonatePlugin extends ServerPlugin {
 	/** @var LoggerInterface Logger for error and debug logging */
 	private LoggerInterface $logger;
 	
+	/** @var IRootFolder Root folder for filesystem access */
+	private IRootFolder $rootFolder;
+	
 	/** @var string HTTP header name for impersonation */
 	public const HEADER_NAME = 'X-Impersonate-User';
 
@@ -46,10 +68,12 @@ class ImpersonatePlugin extends ServerPlugin {
 	 * 
 	 * @param ImpersonateService $impersonateService Service for handling impersonation logic
 	 * @param LoggerInterface $logger Logger for error and debug logging
+	 * @param IRootFolder $rootFolder Root folder for filesystem access
 	 */
-	public function __construct(ImpersonateService $impersonateService, LoggerInterface $logger) {
+	public function __construct(ImpersonateService $impersonateService, LoggerInterface $logger, IRootFolder $rootFolder) {
 		$this->impersonateService = $impersonateService;
 		$this->logger = $logger;
+		$this->rootFolder = $rootFolder;
 	}
 
 	/**
@@ -86,17 +110,38 @@ class ImpersonatePlugin extends ServerPlugin {
 	 * if the header is present. The impersonation is handled by the ImpersonateService
 	 * which validates permissions and switches the user context.
 	 * 
+	 * ## Critical Filesystem Reinitialization
+	 * 
+	 * **KEY INSIGHT**: After `setVolatileActiveUser()` switches the session user,
+	 * the Nextcloud filesystem remains mounted for the original authenticated user.
+	 * This causes WebDAV path resolution failures because:
+	 * 
+	 * - Request goes to `/remote.php/dav/files/john/`
+	 * - Filesystem is mounted for admin user: `/admin/files`
+	 * - Path `/john/files` cannot be resolved → RuntimeException
+	 * 
+	 * **SOLUTION**: We must tear down the old filesystem mount and rebuild it
+	 * for the target user to ensure proper path resolution:
+	 * 
+	 * ```php
+	 * // Reinitialize filesystem for the target user
+	 * \OC\Files\Filesystem::tearDown();
+	 * $this->rootFolder->getUserFolder(trim($impersonateUser));
+	 * ```
+	 * 
 	 * Authentication Flow:
 	 * 1. Client sends Basic Auth credentials + X-Impersonate-User header
 	 * 2. Auth Plugin (Priority 10) validates Basic Auth and sets principal
 	 * 3. ACL Plugin (Priority 20) handles access control
 	 * 4. This Plugin (Priority 30) extracts authenticated user and performs impersonation
+	 * 5. **CRITICAL**: Filesystem is reinitialized for target user
 	 * 
 	 * Key Design Decisions:
 	 * - Uses Sabre auth plugin instead of IUserSession to support Basic Auth without sessions
 	 * - Extracts username from principal path "principals/users/USERNAME" using basename()
 	 * - Passes caller ID to service for validation and impersonation logic
 	 * - Uses volatile user switching to avoid CSRF token issues
+	 * - **ESSENTIAL**: Reinitializes filesystem after user switch for path resolution
 	 * 
 	 * Example usage:
 	 * ```
@@ -159,6 +204,18 @@ class ImpersonatePlugin extends ServerPlugin {
 		
 		// Delegate impersonation logic to the service
 		$this->impersonateService->impersonate($callerUserId, $impersonateUser, $method);
+		
+		// CRITICAL FIX: Reinitialize filesystem for the target user
+		// 
+		// PROBLEM: Nextcloud initializes filesystem for authenticated user (admin)
+		// but WebDAV requests target impersonated user (john). Path resolution fails:
+		// - Request: /remote.php/dav/files/john/
+		// - Filesystem mounted: /admin/files
+		// - Result: RuntimeException - path /john/files not found
+		//
+		// SOLUTION: Tear down old mount and rebuild for target user
+		\OC\Files\Filesystem::tearDown();
+		$this->rootFolder->getUserFolder(trim($impersonateUser));
 	}
 
 	/**

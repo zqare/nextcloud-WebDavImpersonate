@@ -59,6 +59,57 @@ $this->userSession->setVolatileActiveUser($targetUser);
 $this->server->on('beforeMethod:*', [$this, 'beforeMethod'], 30);
 ```
 
+### 4. 🔥 CRITICAL: Filesystem Reinitialization
+
+**Problem**: WebDAV path resolution fails after user impersonation
+**Root Cause**: Nextcloud mounts filesystem for authenticated user, but WebDAV requests target impersonated user
+
+```php
+// ❌ This only changes session context
+$this->userSession->setVolatileActiveUser($targetUser);
+// Filesystem still mounted for admin → /admin/files
+// WebDAV requests target john → /john/files
+// Result: Path not found error
+```
+
+**Solution**: Reinitialize filesystem after user switch
+
+```php
+// ✅ Fix: Reinitialize filesystem for target user
+$this->impersonateService->impersonate($callerUserId, $impersonateUser, $method);
+
+// 🔥 ESSENTIAL: Tear down old mount and build new one
+\OC\Files\Filesystem::tearDown();
+$this->rootFolder->getUserFolder(trim($impersonateUser));
+```
+
+**Why This Works:**
+- `setVolatileActiveUser()` changes session user only
+- WebDAV path resolution depends on filesystem mount points
+- `Filesystem::tearDown()` removes old admin mount
+- `getUserFolder()` creates new mount for target user
+- Path resolution now works: `/john/files` → `/john/files` ✅
+
+**Dependencies Required:**
+```php
+// Application.php - Register IRootFolder service
+$context->registerService('IRootFolder', function() {
+    return \OC::$server->get(IRootFolder::class);
+});
+
+// SabrePluginListener.php - Inject IRootFolder
+public function __construct(
+    ImpersonateService $impersonateService, 
+    LoggerInterface $logger, 
+    IRootFolder $rootFolder  // 🔥 Critical dependency
+) {
+    // ...
+}
+
+// ImpersonatePlugin.php - Use IRootFolder for reinitialization
+$this->rootFolder->getUserFolder(trim($impersonateUser));
+```
+
 ## Security Model
 
 ### Fail-Secure Approach
@@ -212,10 +263,35 @@ cadaver https://nextcloud.local/remote.php/dav/files/targetuser/
 - Verify using `setVolatileActiveUser()` instead of `setUser()`
 - Check that `setImpersonatingUserID()` is called first
 
-### "User not allowed to use WebDAV impersonation"
-- Verify user is in impersonator groups
-- Check group configuration in admin settings
-- Review logs for specific denial reason
+### "Path not found" or "File not found"
+**🔥 CRITICAL**: This is the filesystem reinitialization issue!
+
+**Symptoms:**
+- WebDAV requests to `/remote.php/dav/files/john/` fail
+- Error: "File not found" or "Path not found"
+- Authentication succeeds but file access fails
+
+**Root Cause:**
+```
+Request: /remote.php/dav/files/john/file.txt
+Auth: admin (via Basic Auth)
+Impersonate: john (via X-Impersonate-User)
+Filesystem: /admin/files (mounted for admin)
+Resolution: /admin/files/john/file.txt ❌ (wrong base)
+```
+
+**Solution:**
+Verify filesystem reinitialization is implemented:
+```php
+// In ImpersonatePlugin::beforeMethod()
+\OC\Files\Filesystem::tearDown();
+$this->rootFolder->getUserFolder(trim($impersonateUser));
+```
+
+**Verification:**
+1. Check IRootFolder is injected in SabrePluginListener
+2. Verify IRootFolder service is registered in Application.php
+3. Ensure tearDown() and getUserFolder() are called after impersonation
 
 ## Development Guidelines
 

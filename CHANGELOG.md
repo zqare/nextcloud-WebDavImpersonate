@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated method signatures for better clarity
 
 ### Fixed
+- **Critical**: WebDAV path resolution issue - filesystem now properly reinitialized for target user
 - CSRF issues with volatile user switching
 - Authentication problems with Basic Auth
 - Plugin priority conflicts

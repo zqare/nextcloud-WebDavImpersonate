@@ -9,14 +9,21 @@ declare(strict_types=1);
  * later. See the COPYING file.
  */
 
-namespace OCA\WebDavImpersonate\Tests\Unit\DAV;
+namespace OCA\WebDavImpersonate\Tests;
 
-use OCA\WebDavImpersonate\DAV\ImpersonatePlugin;
+use OCA\WebDavImpersonate\Dav\ImpersonatePlugin;
 use OCA\WebDavImpersonate\Service\ImpersonateService;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sabre\HTTP\Request;
 use Sabre\HTTP\Response;
+
+// Mock IRootFolder interface for testing
+if (!interface_exists('OCP\Files\IRootFolder')) {
+	interface IRootFolder {
+		public function getUserFolder(string $userId): void;
+	}
+}
 
 /**
  * Unit tests for ImpersonatePlugin class.
@@ -27,12 +34,15 @@ use Sabre\HTTP\Response;
  * - Plugin initialization and metadata
  * - Request/response handling
  * 
- * @package OCA\WebDavImpersonate\Tests\Unit\DAV
+ * @package OCA\WebDavImpersonate\Tests
  */
 class ImpersonatePluginTest extends TestCase {
 
 	/** @var ImpersonateService&MockObject Mocked impersonate service */
 	private ImpersonateService $service;
+	
+	/** @var IRootFolder&MockObject Mocked root folder */
+	private $rootFolder;
 	
 	/** @var ImpersonatePlugin The plugin under test */
 	private ImpersonatePlugin $plugin;
@@ -46,7 +56,8 @@ class ImpersonatePluginTest extends TestCase {
 		parent::setUp();
 		
 		$this->service = $this->createMock(ImpersonateService::class);
-		$this->plugin = new ImpersonatePlugin($this->service);
+		$this->rootFolder = $this->createMock(IRootFolder::class);
+		$this->plugin = new ImpersonatePlugin($this->service, $this->rootFolder);
 	}
 
 	/**
@@ -121,7 +132,8 @@ class ImpersonatePluginTest extends TestCase {
 
 			// Create fresh mock for each test case
 			$service = $this->createMock(ImpersonateService::class);
-			$plugin = new ImpersonatePlugin($service);
+			$rootFolder = $this->createMock(IRootFolder::class);
+			$plugin = new ImpersonatePlugin($service, $rootFolder);
 
 			// Expect: Service method is called with correct HTTP method
 			$service->expects($this->once())

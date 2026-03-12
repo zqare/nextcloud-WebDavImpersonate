@@ -50,6 +50,7 @@ Priority 30: Impersonate Plugin
 ├── Extract caller from auth principal
 ├── Validate impersonation permissions
 ├── Switch user context (volatile)
+├── **CRITICAL**: Reinitialize filesystem for target user
 └── Allow request to proceed
 ```
 
@@ -62,6 +63,127 @@ WebDAV Operation
 ├── Generate response (success/error)
 └── Return to client
 ```
+
+## 🔥 CRITICAL INSIGHT: Filesystem Reinitialization
+
+### The Problem
+
+**WebDAV Path Resolution Failure**
+
+```
+Request Flow:
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│  Client Request │───▶│  Auth as Admin   │───▶│  Impersonate     │
+│  /files/john/   │    │  (Basic Auth)    │    │  to "john"      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                                      │
+                                                      ▼
+                                            ┌─────────────────┐
+                                            │ ❌ PATH FAILURE  │
+                                            │ /john/files not  │
+                                            │ found!          │
+                                            └─────────────────┘
+```
+
+**Root Cause Analysis:**
+
+1. **Nextcloud initializes filesystem** for authenticated user (admin)
+2. **Filesystem mount points to**: `/admin/files`
+3. **WebDAV request targets**: `/remote.php/dav/files/john/`
+4. **Path resolution attempts**: Find `/john/files` in `/admin/files` mount
+5. **Result**: RuntimeException - path not found
+
+### The Solution
+
+**Filesystem Reinitialization After User Switch**
+
+```php
+// Critical fix in ImpersonatePlugin::beforeMethod()
+$this->impersonateService->impersonate($callerUserId, $impersonateUser, $method);
+
+// 🔥 ESSENTIAL: Reinitialize filesystem for target user
+\OC\Files\Filesystem::tearDown();                    // Remove old mount
+$this->rootFolder->getUserFolder(trim($impersonateUser)); // Build new mount
+```
+
+**Fixed Request Flow:**
+
+```
+Request Flow:
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│  Client Request │───▶│  Auth as Admin   │───▶│  Impersonate     │
+│  /files/john/   │    │  (Basic Auth)    │    │  to "john"      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                                      │
+                                                      ▼
+                                            ┌─────────────────┐
+                                            │ ✅ FILESYSTEM   │
+                                            │ REINITIALIZED   │
+                                            │ /john/files ✅   │
+                                            └─────────────────┘
+```
+
+### Technical Implementation
+
+**Dependency Chain:**
+
+```
+Application.php
+├── Register IRootFolder service
+│   └── Enables filesystem access
+├── Register SabrePluginListener
+│   └── Creates ImpersonatePlugin
+│       ├── Inject IRootFolder
+│       └── Enables filesystem reinitialization
+└── Event-driven plugin registration
+```
+
+**Critical Code Path:**
+
+```php
+// 1. Event registration (Application.php)
+$context->registerService('IRootFolder', function() {
+    return \OC::$server->get(IRootFolder::class);
+});
+
+// 2. Plugin creation (SabrePluginListener.php)
+$plugin = new ImpersonatePlugin(
+    $this->impersonateService,
+    $this->logger,
+    $this->rootFolder  // 🔥 Critical dependency
+);
+
+// 3. Filesystem fix (ImpersonatePlugin.php)
+\OC\Files\Filesystem::tearDown();
+$this->rootFolder->getUserFolder(trim($impersonateUser));
+```
+
+### Why This Works
+
+**Filesystem Mount Architecture:**
+
+```
+Before Fix:
+├── Authenticated: admin
+├── Filesystem mount: /admin/files
+├── WebDAV request: /files/john/
+└── Resolution: /admin/files/john/files ❌ (wrong base)
+
+After Fix:
+├── Authenticated: admin
+├── Impersonated: john
+├── Filesystem mount: /john/files ✅
+├── WebDAV request: /files/john/
+└── Resolution: /john/files ✅ (correct base)
+```
+
+**Key Insights:**
+
+1. **`setVolatileActiveUser()`** only changes session context, not filesystem mounts
+2. **WebDAV path resolution** depends on filesystem mount points, not session user
+3. **`Filesystem::tearDown()`** removes the old mount completely
+4. **`getUserFolder()`** creates new mount for target user
+5. **This is essential** for any WebDAV impersonation implementation
 
 ## Authentication Architecture
 
