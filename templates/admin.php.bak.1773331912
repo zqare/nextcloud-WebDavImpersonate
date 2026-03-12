@@ -1,0 +1,248 @@
+<?php
+/** @var \OCP\IL10N $l */
+/** @var array $_ */
+?>
+
+<div id="webdav-impersonate-admin">
+    <div class="section">
+        <h2><?php p($l->t('WebDAV Impersonate – Group Mappings')); ?></h2>
+        <p class="settings-hint">
+            <?php p($l->t('Define which groups can impersonate which target groups (1:1 mapping).')); ?>
+        </p>
+
+        <!-- Tabelle -->
+        <table id="mapping-table" style="width:100%; border-collapse:collapse; margin-bottom:1rem;">
+            <thead>
+                <tr>
+                    <th style="text-align:left; padding:8px; border-bottom:2px solid var(--color-border);">
+                        <?php p($l->t('Impersonator Group')); ?>
+                    </th>
+                    <th style="text-align:left; padding:8px; border-bottom:2px solid var(--color-border);">
+                        <?php p($l->t('Imitatee Group')); ?>
+                    </th>
+                    <th style="width:60px; padding:8px; border-bottom:2px solid var(--color-border);"></th>
+                </tr>
+            </thead>
+            <tbody id="mapping-tbody">
+                <!-- wird per JS befüllt -->
+            </tbody>
+        </table>
+
+        <button id="btn-add-mapping" class="button">
+            + <?php p($l->t('Add Mapping')); ?>
+        </button>
+
+        <button id="btn-save-mappings" class="button primary" style="margin-left:8px;">
+            <?php p($l->t('Save')); ?>
+        </button>
+
+        <span id="save-status" style="margin-left:12px; display:none; color:var(--color-success);"></span>
+    </div>
+
+    <!-- Popup / Modal -->
+    <div id="mapping-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+         background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:var(--color-main-background); border-radius:8px; padding:24px;
+                    min-width:360px; box-shadow:0 4px 24px rgba(0,0,0,0.3);">
+            <h3 style="margin-top:0;"><?php p($l->t('Add Group Mapping')); ?></h3>
+
+            <label style="display:block; margin-bottom:4px;">
+                <?php p($l->t('Impersonator Group')); ?>
+            </label>
+            <select id="modal-impersonator" style="width:100%; margin-bottom:16px; padding:6px;">
+                <option value=""><?php p($l->t('-- Select group --')); ?></option>
+            </select>
+
+            <label style="display:block; margin-bottom:4px;">
+                <?php p($l->t('Imitatee Group')); ?>
+            </label>
+            <select id="modal-imitatee" style="width:100%; margin-bottom:24px; padding:6px;">
+                <option value=""><?php p($l->t('-- Select group --')); ?></option>
+            </select>
+
+            <div style="display:flex; gap:8px; justify-content:flex-end;">
+                <button id="modal-cancel" class="button"><?php p($l->t('Cancel')); ?></button>
+                <button id="modal-confirm" class="button primary"><?php p($l->t('Add')); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // ── State ──────────────────────────────────────────────
+    var allGroups  = [];   // [{id, displayName}]
+    var mappings   = [];   // [{impersonator, imitatee}]
+
+    // ── DOM refs ───────────────────────────────────────────
+    var tbody       = document.getElementById('mapping-tbody');
+    var modal       = document.getElementById('mapping-modal');
+    var selImp      = document.getElementById('modal-impersonator');
+    var selImi      = document.getElementById('modal-imitatee');
+    var saveStatus  = document.getElementById('save-status');
+
+    // ── Render Tabelle ─────────────────────────────────────
+    function renderTable() {
+        tbody.innerHTML = '';
+
+        if (mappings.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="padding:12px; color:var(--color-text-lighter); text-align:center;"><?php p($l->t('No mappings yet.')); ?></td></tr>';
+            return;
+        }
+
+        mappings.forEach(function(m, i) {
+            var tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid var(--color-border)';
+            tr.innerHTML =
+                '<td style="padding:10px;">' + escHtml(m.impersonator) + '</td>' +
+                '<td style="padding:10px;">' + escHtml(m.imitatee) + '</td>' +
+                '<td style="padding:10px;">' +
+                    '<button class="button" data-index="' + i + '" onclick="WDI_deleteMapping(this)">✕</button>' +
+                '</td>';
+            tbody.appendChild(tr);
+        });
+    }
+
+    // ── Modal öffnen ───────────────────────────────────────
+    function openModal() {
+        console.log('openModal called');
+        var usedImp = mappings.map(function(m){ return m.impersonator; });
+        var usedImi = mappings.map(function(m){ return m.imitatee; });
+
+        fillSelect(selImp, usedImp);
+        fillSelect(selImi, usedImi);
+
+        modal.style.display = 'flex';
+        console.log('modal display set to flex');
+    }
+
+    function fillSelect(sel, usedIds) {
+        sel.innerHTML = '<option value=""><?php p($l->t('-- Select group --')); ?></option>';
+        allGroups.forEach(function(g) {
+            var opt = document.createElement('option');
+            opt.value = g.id;
+            opt.textContent = g.displayName;
+            opt.disabled = usedIds.indexOf(g.id) !== -1;
+            sel.appendChild(opt);
+        });
+    }
+
+    function closeModal() {
+        selImp.value = '';
+        selImi.value = '';
+        modal.style.display = 'none';
+    }
+
+    // ── Mapping hinzufügen ─────────────────────────────────
+    function confirmAdd() {
+        var imp = selImp.value;
+        var imi = selImi.value;
+
+        if (!imp || !imi) {
+            alert('<?php p($l->t('Please select both groups.')); ?>');
+            return;
+        }
+        if (imp === imi) {
+            alert('<?php p($l->t('Impersonator and Imitatee must be different groups.')); ?>');
+            return;
+        }
+
+        mappings.push({ impersonator: imp, imitatee: imi });
+        closeModal();
+        renderTable();
+    }
+
+    // ── Mapping löschen (global, weil onclick-Attr) ────────
+    window.WDI_deleteMapping = function(btn) {
+        var i = parseInt(btn.getAttribute('data-index'), 10);
+        mappings.splice(i, 1);
+        renderTable();
+    };
+
+    // ── Speichern ──────────────────────────────────────────
+    function saveMappings() {
+        var token = document.getElementsByName('requesttoken')[0];
+        var csrfToken = token ? token.content : (OC.requestToken || '');
+
+        fetch(OC.generateUrl('/apps/webdavimpersonate/api/mappings'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'requesttoken': csrfToken
+            },
+            body: JSON.stringify({ mappings: mappings })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function() {
+            saveStatus.textContent = '✓ <?php p($l->t('Saved')); ?>';
+            saveStatus.style.display = 'inline';
+            setTimeout(function(){ saveStatus.style.display = 'none'; }, 3000);
+        })
+        .catch(function() {
+            alert('<?php p($l->t('Error saving mappings.')); ?>');
+        });
+    }
+
+    // ── Daten laden ────────────────────────────────────────
+    function loadGroups(callback) {
+        fetch(OC.generateUrl('/apps/webdavimpersonate/api/groups'))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                allGroups = data.groups || [];
+                callback();
+            })
+            .catch(function() { callback(); });
+    }
+
+    function loadMappings() {
+        fetch(OC.generateUrl('/apps/webdavimpersonate/api/mappings'))
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                mappings = data.mappings || [];
+                renderTable();
+            });
+    }
+
+    // ── Helper ─────────────────────────────────────────────
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // ── Init ───────────────────────────────────────────────
+    console.log('Initializing script...');
+    loadGroups(function() {
+        console.log('Groups loaded, now loading mappings...');
+        loadMappings();
+        console.log('Mappings loaded, setting up event listeners...');
+        
+        // Event Listener erst nach dem DOM-Load setup
+        setupEventListeners();
+    });
+
+    function setupEventListeners() {
+        console.log('Setting up event listeners...');
+        var addBtn = document.getElementById('btn-add-mapping');
+        console.log('addBtn found:', addBtn);
+        
+        if (addBtn) {
+            addBtn.onclick = function() {
+                console.log('Add mapping button clicked!');
+                openModal();
+            };
+            console.log('Event listener attached to addBtn');
+        } else {
+            console.error('btn-add-mapping not found!');
+        }
+        
+        document.getElementById('btn-save-mappings').onclick = saveMappings;
+        document.getElementById('modal-cancel').onclick     = closeModal;
+        document.getElementById('modal-confirm').onclick    = confirmAdd;
+        modal.onclick = function(e) { if (e.target === modal) closeModal(); };
+    }
+
+})();
+</script>

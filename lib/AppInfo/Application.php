@@ -31,6 +31,9 @@ use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCA\WebDavImpersonate\Dav\SabrePluginListener;
+use OCA\WebDavImpersonate\Controller\ConfigController;
+use OCA\WebDavImpersonate\Controller\AuditController;
+use OCA\WebDavImpersonate\Controller\MappingsController;
 use OCP\Files\IRootFolder;
 
 class Application extends App implements IBootstrap {
@@ -53,6 +56,11 @@ class Application extends App implements IBootstrap {
 	 * of the impersonated user.
 	 */
 	public function register(IRegistrationContext $context): void {
+		// Register Controllers
+		$context->registerService(ConfigController::class);
+		$context->registerService(AuditController::class);
+		$context->registerService(MappingsController::class);
+		
 		// Register the SabrePluginListener for the SabrePluginAddEvent
 		$context->registerEventListener(
 			'OCA\\DAV\\Events\\SabrePluginAddEvent',

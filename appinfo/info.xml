@@ -34,12 +34,17 @@
 	<dependencies>
 		<nextcloud min-version="31" max-version="32"/>
 	</dependencies>
+	<settings>
+		<admin>OCA\WebDavImpersonate\Settings\AdminSettings</admin>
+		<admin-section>OCA\WebDavImpersonate\Sections\WebDavImpersonateAdmin</admin-section>
+	</settings>
 	<navigations>
 		<navigation>
 			<id>webdavimpersonate</id>
 			<name>Web Dav Impersonate</name>
 			<route>webdavimpersonate.page.index</route>
 			<icon>app.svg</icon>
+			<order>10</order>
 			<type>link</type>
 		</navigation>
 	</navigations>
